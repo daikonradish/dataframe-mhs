@@ -16,10 +16,18 @@ interpret (Lit value) df = let
             ((_, (CBool xs)): rest)   -> map fst xs
             []                         -> ([] :: [Int])
     in toColumn (zip ixs (replicate (length ixs) value))
-interpret (UnaryIntOp f e) df = transform f (interpret e df)
-interpret (UnaryDoubleOp f e) df = transform f (interpret e df)
-interpret (UnaryStringOp f e) df = transform f (interpret e df)
-interpret (UnaryBoolOp f e) df = transform f (interpret e df)
+interpret (UnaryIntOp f e) df = case interpret e df of
+    CInt xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
+    _       -> error "Type mismatch"
+interpret (UnaryDoubleOp f e) df = case interpret e df of
+    CDouble xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
+    _       -> error "Type mismatch"
+interpret (UnaryStringOp f e) df = case interpret e df of
+    CString xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
+    _       -> error "Type mismatch"
+interpret (UnaryBoolOp f e) df = case interpret e df of
+    CBool xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
+    _       -> error "Type mismatch"
 interpret (BinaryIntToIntOp f l r) df = case (interpret l df, interpret r df) of
     -- Assumes indicies are the same.
     -- TODO: We could line these up.

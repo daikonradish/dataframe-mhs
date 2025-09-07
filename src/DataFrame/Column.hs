@@ -31,38 +31,7 @@ instance ToColumn Bool where toColumn = CBool
 fromList :: ToColumn a => [a] -> Column
 fromList xs = toColumn (zip [0..] xs)
 
--- | Map-like function
-class Transform a where
-    transform :: ToColumn b => (a -> b) -> Column -> Column
-
-instance Transform Int where
-    transform f (CInt xs) = toColumn (map (\(i, v) ->(i, f v)) xs)
-    transform _ _ = error "Expected Int"
-
-instance Transform Double where
-    transform f (CDouble xs) = toColumn (map (\(i, v) ->(i, f v)) xs)
-    transform _ _ = error "Expected Double"
-
-instance Transform [Char] where
-    transform f (CString xs) = toColumn (map (\(i, v) ->(i, f v)) xs)
-    transform _ _ = error "Expected String"
-
-instance Transform Bool where
-    transform f (CBool xs) = toColumn (map (\(i, v) ->(i, f v)) xs)
-    transform _ _ = error "Expected Bool"
-
 atIndicies :: [Int] -> Column -> Column
 atIndicies ixs (CInt xs) = CInt (filter ((`elem` ixs) . fst) xs)
 atIndicies ixs (CDouble xs) = CDouble (filter ((`elem` ixs) . fst) xs)
 atIndicies ixs (CString xs) = CString (filter ((`elem` ixs) . fst) xs)
-
-getIndicies :: Column -> [Int]
-getIndicies (CInt xs) = map fst xs
-getIndicies (CDouble xs) = map fst xs
-getIndicies (CString xs) = map fst xs
-
-columnLength :: Column -> Int
-columnLength (CInt xs) = length xs
-columnLength (CDouble xs) = length xs
-columnLength (CString xs) = length xs
-columnLength (CBool xs) = length xs
