@@ -20,18 +20,43 @@ instance Show Column where
     show (CString xs) = show (map snd xs)
     show (CBool xs) = show (map snd xs)
 
-class ToColumn a where
+class Columnable a where
   toColumn :: [(Int, a)] -> Column
+  fromColumn :: Column -> [(Int, a)]
+  unary :: (Columnable b) => (b -> a) -> Column -> Column
+  -- TODO: Implementations should align columns.
+  -- Right now we assume columns are the same.
+  binary :: (Columnable b, Columnable c) => (c -> b -> a) -> Column -> Column -> Column
 
-instance ToColumn Int    where toColumn = CInt
-instance ToColumn Double where toColumn = CDouble
-instance ToColumn [Char] where toColumn = CString
-instance ToColumn Bool where toColumn = CBool
+instance Columnable Int where
+    toColumn = CInt
+    fromColumn (CInt xs) = xs
+    unary f c = toColumn (map (\(i, v) -> (i, f v)) (fromColumn c))
+    binary f x y = toColumn (zipWith (\(i, v) (i', v') -> (i, f v v')) (fromColumn x) (fromColumn y))
 
-fromList :: ToColumn a => [a] -> Column
+instance Columnable Double where
+    toColumn = CDouble
+    fromColumn (CDouble xs) = xs
+    unary f c = toColumn (map (\(i, v) -> (i, f v)) (fromColumn c))
+    binary f x y = toColumn (zipWith (\(i, v) (i', v') -> (i, f v v')) (fromColumn x) (fromColumn y))
+
+instance Columnable [Char] where
+    toColumn = CString
+    fromColumn (CString xs) = xs
+    unary f c = toColumn (map (\(i, v) -> (i, f v)) (fromColumn c))
+    binary f x y = toColumn (zipWith (\(i, v) (i', v') -> (i, f v v')) (fromColumn x) (fromColumn y))
+
+instance Columnable Bool where
+    toColumn = CBool
+    fromColumn (CBool xs) = xs
+    unary f c = toColumn (map (\(i, v) -> (i, f v)) (fromColumn c))
+    binary f x y = toColumn (zipWith (\(i, v) (i', v') -> (i, f v v')) (fromColumn x) (fromColumn y))
+
+fromList :: Columnable a => [a] -> Column
 fromList xs = toColumn (zip [0..] xs)
 
 atIndicies :: [Int] -> Column -> Column
 atIndicies ixs (CInt xs) = CInt (filter ((`elem` ixs) . fst) xs)
 atIndicies ixs (CDouble xs) = CDouble (filter ((`elem` ixs) . fst) xs)
 atIndicies ixs (CString xs) = CString (filter ((`elem` ixs) . fst) xs)
+atIndicies ixs (CBool xs) = CBool (filter ((`elem` ixs) . fst) xs)

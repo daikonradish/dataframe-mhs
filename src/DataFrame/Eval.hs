@@ -4,80 +4,16 @@ import DataFrame.Core
 import DataFrame.Column
 import DataFrame.Expression
 
-interpret :: (ToColumn a) => Expr a -> DataFrame -> Column
-interpret (Col name) df = case lookup name (columns df) of
-    Nothing -> fromList ([] :: [[Char]])
-    Just c  -> c
-interpret (Lit value) df = let
-        ixs = case (columns df) of
-            ((_, (CInt xs)): rest)    -> map fst xs
-            ((_, (CDouble xs)): rest) -> map fst xs
-            ((_, (CString xs)): rest) -> map fst xs
-            ((_, (CBool xs)): rest)   -> map fst xs
-            []                         -> ([] :: [Int])
-    in toColumn (zip ixs (replicate (length ixs) value))
-interpret (UnaryIntOp f e) df = case interpret e df of
-    CInt xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
-    _       -> error "Type mismatch"
-interpret (UnaryDoubleOp f e) df = case interpret e df of
-    CDouble xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
-    _       -> error "Type mismatch"
-interpret (UnaryStringOp f e) df = case interpret e df of
-    CString xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
-    _       -> error "Type mismatch"
-interpret (UnaryBoolOp f e) df = case interpret e df of
-    CBool xs -> toColumn (map (\(i, v) -> (i, f v)) xs)
-    _       -> error "Type mismatch"
-interpret (BinaryIntToIntOp f l r) df = case (interpret l df, interpret r df) of
-    -- Assumes indicies are the same.
-    -- TODO: We could line these up.
-    (CInt xs, CInt ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryIntToDoubleOp f l r) df = case (interpret l df, interpret r df) of
-    (CInt xs, CDouble ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryIntToStringOp f l r) df = case (interpret l df, interpret r df) of
-    (CInt xs, CString ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryIntToBoolOp f l r) df = case (interpret l df, interpret r df) of
-    (CInt xs, CBool ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
--- | Double
-interpret (BinaryDoubleToIntOp f l r) df = case (interpret l df, interpret r df) of
-    (CDouble xs, CInt ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryDoubleToDoubleOp f l r) df = case (interpret l df, interpret r df) of
-    (CDouble xs, CDouble ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryDoubleToStringOp f l r) df = case (interpret l df, interpret r df) of
-    (CDouble xs, CString ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryDoubleToBoolOp f l r) df = case (interpret l df, interpret r df) of
-    (CDouble xs, CBool ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
--- | String
-interpret (BinaryStringToIntOp f l r) df = case (interpret l df, interpret r df) of
-    (CString xs, CInt ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryStringToDoubleOp f l r) df = case (interpret l df, interpret r df) of
-    (CString xs, CDouble ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryStringToStringOp f l r) df = case (interpret l df, interpret r df) of
-    (CString xs, CString ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryStringToBoolOp f l r) df = case (interpret l df, interpret r df) of
-    (CString xs, CBool ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
--- | Bool
-interpret (BinaryBoolToIntOp f l r) df = case (interpret l df, interpret r df) of
-    (CBool xs, CInt ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryBoolToDoubleOp f l r) df = case (interpret l df, interpret r df) of
-    (CBool xs, CDouble ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryBoolToStringOp f l r) df = case (interpret l df, interpret r df) of
-    (CBool xs, CString ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
-interpret (BinaryBoolToBoolOp f l r) df = case (interpret l df, interpret r df) of
-    (CBool xs, CBool ys) -> toColumn (zipWith (\(a, b) (a', b') -> (a, f b b')) xs ys)
-    _ -> error "Type mismatch"
+import Data.Maybe
+
+interpret :: (Columnable a) => Expr a -> DataFrame -> Column
+interpret (Lit v) df = fromList (replicate n v)
+    where
+        n = case (columns df) of
+            ((_, CInt xs):_)    -> length xs
+            ((_, CDouble xs):_) -> length xs
+            ((_, CString xs):_) -> length xs
+            ((_, CBool xs):_)   -> length xs
+interpret (Col name) df = fromMaybe (fromList ([] :: [String])) (lookup name (columns df))
+interpret (UnaryOp f expr) df = unary f (interpret expr df) 
+interpret (BinaryOp f l r) df = binary f (interpret l df) (interpret r df)
