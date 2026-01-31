@@ -2,8 +2,6 @@
 
 module Main (main) where
 
-import Control.Monad
-
 import DataFrame ((.>=), (|>))
 import qualified DataFrame as D
 

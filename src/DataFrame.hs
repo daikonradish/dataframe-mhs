@@ -1,19 +1,19 @@
 module DataFrame (
-    module Core,
-    module Column,
-    module Expression,
-    module Functions,
-    module PrettyPrint,
+    module DataFrame.Core,
+    module DataFrame.Column,
+    module DataFrame.Expression,
+    module DataFrame.Functions,
+    module DataFrame.PrettyPrint,
     (|>),
 ) where
 
 import Data.Function
 
-import qualified DataFrame.Column as Column
-import qualified DataFrame.Core as Core
-import qualified DataFrame.Expression as Expression
-import qualified DataFrame.Functions as Functions
-import qualified DataFrame.PrettyPrint as PrettyPrint
+import DataFrame.Column
+import DataFrame.Core
+import DataFrame.Expression
+import DataFrame.Functions
+import DataFrame.PrettyPrint
 
 (|>) :: a -> (a -> b) -> b
 (|>) = (&)

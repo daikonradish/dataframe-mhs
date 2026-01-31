@@ -1,3 +1,5 @@
+{-# LANGUAGE GADTs #-}
+
 module DataFrame.Expression where
 
 import DataFrame.Column
